@@ -1,0 +1,92 @@
+{
+  "CVE-2021-44228": {
+    "pci_requirement": "6.3.3",
+    "requirement_title": "All system components protected from known vulnerabilities",
+    "risk": "Remote code execution via Log4j in payment processing services",
+    "remediation": "Upgrade Log4j to 2.17.1+. Audit all Java-based payment services."
+  },
+  "CVE-2021-45046": {
+    "pci_requirement": "6.3.3",
+    "requirement_title": "All system components protected from known vulnerabilities",
+    "risk": "Log4j bypass allowing RCE in fintech API gateways",
+    "remediation": "Upgrade Log4j to 2.17.1+. Patch immediately if CVE-2021-44228 fix applied."
+  },
+  "CVE-2022-22965": {
+    "pci_requirement": "6.2.4",
+    "requirement_title": "Software engineering practices prevent common vulnerabilities",
+    "risk": "Spring4Shell RCE affecting Spring-based payment APIs and banking portals",
+    "remediation": "Upgrade Spring Framework to 5.3.18+ or 5.2.20+."
+  },
+  "CVE-2023-44487": {
+    "pci_requirement": "11.3.1",
+    "requirement_title": "External and internal penetration testing performed regularly",
+    "risk": "HTTP/2 Rapid Reset DDoS attack disrupting payment gateway availability",
+    "remediation": "Patch web servers (nginx, Apache). Enable rate limiting on payment endpoints."
+  },
+  "CVE-2024-21626": {
+    "pci_requirement": "2.2.1",
+    "requirement_title": "System components use vendor-supported software",
+    "risk": "Container escape in runc allowing access to cardholder data environment",
+    "remediation": "Upgrade runc to 1.1.12+. Audit all containerized payment services."
+  },
+  "CVE-2023-38545": {
+    "pci_requirement": "6.3.3",
+    "requirement_title": "All system components protected from known vulnerabilities",
+    "risk": "Heap overflow in curl/libcurl affecting fintech data transfer services",
+    "remediation": "Upgrade curl to 8.4.0+. Audit all services using libcurl for API calls."
+  },
+  "CVE-2023-46604": {
+    "pci_requirement": "1.3.2",
+    "requirement_title": "Restrict inbound and outbound traffic to that necessary",
+    "risk": "Apache ActiveMQ RCE exposing message queues in payment processing pipelines",
+    "remediation": "Upgrade ActiveMQ to 5.15.16+, 5.16.7+, or 5.17.6+."
+  },
+  "CVE-2022-3786": {
+    "pci_requirement": "6.3.3",
+    "requirement_title": "All system components protected from known vulnerabilities",
+    "risk": "OpenSSL buffer overflow affecting TLS in payment API communications",
+    "remediation": "Upgrade OpenSSL to 3.0.7+. Audit all TLS endpoints handling card data."
+  },
+  "CVE-2023-29017": {
+    "pci_requirement": "6.2.4",
+    "requirement_title": "Software engineering practices prevent common vulnerabilities",
+    "risk": "vm2 sandbox escape in Node.js payment processing scripts",
+    "remediation": "Upgrade vm2 to 3.9.15+ or migrate to isolated-vm."
+  },
+  "CVE-2022-32212": {
+    "pci_requirement": "6.3.3",
+    "requirement_title": "All system components protected from known vulnerabilities",
+    "risk": "Node.js DNS rebinding attack enabling SSRF against internal payment services",
+    "remediation": "Upgrade Node.js to 18.5.0+ or 16.16.0+."
+  },
+  "CVE-2023-32731": {
+    "pci_requirement": "4.2.1",
+    "requirement_title": "Strong cryptography used to safeguard PAN during transmission",
+    "risk": "gRPC TLS certificate verification bypass exposing payment API traffic",
+    "remediation": "Upgrade gRPC to 1.53.1+, 1.54.3+, or 1.55.0+."
+  },
+  "CVE-2022-24785": {
+    "pci_requirement": "6.3.3",
+    "requirement_title": "All system components protected from known vulnerabilities",
+    "risk": "Moment.js path traversal in fintech dashboards using date formatting",
+    "remediation": "Upgrade moment to 2.29.2+. Consider migrating to date-fns or Luxon."
+  },
+  "CVE-2023-45133": {
+    "pci_requirement": "6.2.4",
+    "requirement_title": "Software engineering practices prevent common vulnerabilities",
+    "risk": "Babel code injection in Node.js fintech build pipelines",
+    "remediation": "Upgrade @babel/traverse to 7.23.2+."
+  },
+  "CVE-2023-26136": {
+    "pci_requirement": "6.3.3",
+    "requirement_title": "All system components protected from known vulnerabilities",
+    "risk": "tough-cookie prototype pollution in Node.js payment session management",
+    "remediation": "Upgrade tough-cookie to 4.1.3+."
+  },
+  "CVE-2024-29415": {
+    "pci_requirement": "6.2.4",
+    "requirement_title": "Software engineering practices prevent common vulnerabilities",
+    "risk": "ip package SSRF bypass in Node.js fintech microservices",
+    "remediation": "Upgrade ip package to 1.1.9+ or 2.0.1+."
+  }
+}
