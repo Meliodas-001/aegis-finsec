@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS — Financial Threat Intelligence</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0e1a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+        .header { background: #0f1629; border-bottom: 1px solid #1e3a5f; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+        .logo { font-size: 22px; font-weight: 700; color: #00d4ff; letter-spacing: 2px; }
+        .status-badge { background: #0d2d1a; border: 1px solid #00c853; color: #00c853; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 32px; }
+        .tagline { color: #94a3b8; font-size: 14px; margin-top: 4px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: #0f1629; border: 1px solid #1e3a5f; border-radius: 12px; padding: 20px; text-align: center; }
+        .stat-number { font-size: 32px; font-weight: 700; color: #00d4ff; }
+        .stat-label { font-size: 12px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-card.critical .stat-number { color: #ff4444; }
+        .stat-card.high .stat-number { color: #ff8800; }
+        .stat-card.iocs .stat-number { color: #00c853; }
+        .playbooks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px; }
+        .playbook-btn { background: #0f1629; border: 1px solid #1e3a5f; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s; text-align: left; }
+        .playbook-btn:hover { border-color: #00d4ff; background: #0a1929; }
+        .playbook-btn h3 { color: #00d4ff; font-size: 14px; margin-bottom: 6px; }
+        .playbook-btn p { color: #64748b; font-size: 12px; line-height: 1.5; }
+        .playbook-tag { display: inline-block; background: #0d2d1a; color: #00c853; font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-bottom: 8px; }
+        .results-panel { background: #0f1629; border: 1px solid #1e3a5f; border-radius: 12px; padding: 24px; }
+        .results-panel h2 { color: #e2e8f0; font-size: 16px; margin-bottom: 16px; border-bottom: 1px solid #1e3a5f; padding-bottom: 12px; }
+        .cve-item { background: #0a0e1a; border: 1px solid #1e3a5f; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .cve-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .cve-id { color: #00d4ff; font-weight: 600; font-size: 14px; font-family: monospace; }
+        .severity-badge { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .CRITICAL { background: #2d0a0a; color: #ff4444; }
+        .HIGH { background: #2d1a0a; color: #ff8800; }
+        .cve-desc { color: #94a3b8; font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
+        .pci-tag { background: #0d1f3d; border: 1px solid #1e3a5f; color: #7cb9ff; font-size: 11px; padding: 4px 10px; border-radius: 4px; display: inline-block; margin-top: 4px; }
+        .remediation { color: #00c853; font-size: 12px; margin-top: 8px; }
+        .loading { text-align: center; color: #64748b; padding: 40px; }
+        .vendor-tag { color: #64748b; font-size: 11px; margin-top: 4px; }
+        #results-title { color: #e2e8f0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <div class="logo">⚡ AEGIS</div>
+            <div class="tagline">Autonomous Financial Threat Intelligence Agent</div>
+        </div>
+        <div class="status-badge">● ONLINE</div>
+    </div>
+
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card critical">
+                <div class="stat-number" id="critical-count">—</div>
+                <div class="stat-label">Critical CVEs</div>
+            </div>
+            <div class="stat-card high">
+                <div class="stat-number" id="high-count">—</div>
+                <div class="stat-label">High CVEs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pci-count">15</div>
+                <div class="stat-label">PCI-DSS Mapped</div>
+            </div>
+            <div class="stat-card iocs">
+                <div class="stat-number" id="ioc-count">—</div>
+                <div class="stat-label">IOCs Monitored</div>
+            </div>
+        </div>
+
+        <div class="playbooks">
+            <div class="playbook-btn" onclick="runPlaybook('daily-brief', 'Daily Threat Brief')">
+                <div class="playbook-tag">AUTONOMOUS</div>
+                <h3>📋 Daily Threat Brief</h3>
+                <p>Surfaces critical CVEs affecting your fintech stack — Node.js, MongoDB, Stripe, Plaid — updated continuously.</p>
+            </div>
+            <div class="playbook-btn" onclick="runPlaybook('compliance-report', 'PCI-DSS Compliance Report')">
+                <div class="playbook-tag">AUDIT READY</div>
+                <h3>🔒 PCI-DSS Compliance Report</h3>
+                <p>Maps every CVE to the exact PCI-DSS v4.0 requirement it violates. Export-ready for auditors.</p>
+            </div>
+            <div class="playbook-btn" onclick="runPlaybook('active-threats', 'Active Threat Intelligence')">
+                <div class="playbook-tag">LIVE DATA</div>
+                <h3>🎯 Active Threat Intelligence</h3>
+                <p>Real-time IOCs from URLhaus — malicious URLs actively targeting payment infrastructure.</p>
+            </div>
+            <div class="playbook-btn" onclick="showInfo()">
+                <div class="playbook-tag">POWERED BY</div>
+                <h3>⚙️ Agent Architecture</h3>
+                <p>Built on Gemini + Google Cloud Agent Builder. Elastic MCP server indexes 379 CVEs and 21,588 IOCs.</p>
+            </div>
+        </div>
+
+        <div class="results-panel">
+            <h2 id="results-title">Select a playbook above to run it</h2>
+            <div id="results">
+                <div class="loading">AEGIS is standing by. Click any playbook to activate.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runPlaybook(endpoint, title) {
+            document.getElementById('results-title').textContent = '⟳ Running: ' + title;
+            document.getElementById('results').innerHTML = '<div class="loading">Querying Elastic threat intelligence...</div>';
+
+            try {
+                const res = await fetch('/playbook/' + endpoint);
+                const data = await res.json();
+                document.getElementById('results-title').textContent = '✓ ' + title;
+                renderResults(endpoint, data);
+            } catch(e) {
+                document.getElementById('results').innerHTML = '<div class="loading">Error connecting to agent.</div>';
+            }
+        }
+
+        function renderResults(endpoint, data) {
+            let html = '';
+            if (endpoint === 'daily-brief' || endpoint === 'compliance-report') {
+                const items = data.cves || data.report || [];
+                items.forEach(item => {
+                    const sev = item.severity || 'HIGH';
+                    html += `<div class="cve-item">
+                        <div class="cve-header">
+                            <span class="cve-id">${item.cve_id || ''}</span>
+                            <span class="severity-badge ${sev}">${sev}</span>
+                        </div>
+                        <div class="cve-desc">${item.description || item.risk || ''}</div>
+                        <div class="vendor-tag">Vendor: ${item.vendor || 'fintech stack'}</div>
+                        ${item.pci_requirement ? `<div class="pci-tag">PCI-DSS Req ${item.pci_requirement} — ${item.pci_title || item.requirement_title || ''}</div>` : ''}
+                        ${item.remediation ? `<div class="remediation">↳ ${item.remediation}</div>` : ''}
+                    </div>`;
+                });
+            } else if (endpoint === 'active-threats') {
+                const iocs = data.recent_iocs || [];
+                html += `<div class="stat-card" style="margin-bottom:16px;text-align:left;padding:12px 16px"><span style="color:#00c853;font-weight:600">${data.total_monitored?.toLocaleString() || ''}</span> <span style="color:#64748b;font-size:13px">total IOCs monitored in real time</span></div>`;
+                iocs.forEach(ioc => {
+                    html += `<div class="cve-item">
+                        <div class="cve-id" style="font-size:12px;word-break:break-all">${ioc.ioc_value}</div>
+                        <div class="vendor-tag" style="margin-top:6px">Threat: ${ioc.threat_actor || 'unknown'} | Added: ${ioc.date_added || 'recent'}</div>
+                    </div>`;
+                });
+            }
+            document.getElementById('results').innerHTML = html || '<div class="loading">No data returned.</div>';
+            loadStats();
+        }
+
+        function showInfo() {
+            document.getElementById('results-title').textContent = '⚙️ AEGIS Architecture';
+            document.getElementById('results').innerHTML = `
+                <div class="cve-item">
+                    <div class="cve-id">Data Sources</div>
+                    <div class="cve-desc" style="margin-top:8px">CISA KEV · NVD CVE API · URLhaus (abuse.ch) · MITRE ATT&CK Financial Services</div>
+                </div>
+                <div class="cve-item">
+                    <div class="cve-id">Stack</div>
+                    <div class="cve-desc" style="margin-top:8px">Gemini · Google Cloud Agent Builder · Elastic MCP Server · Flask · Railway · Python</div>
+                </div>
+                <div class="cve-item">
+                    <div class="cve-id">Coverage</div>
+                    <div class="cve-desc" style="margin-top:8px">Node.js · MongoDB · Stripe SDK · Plaid SDK · nginx · Express · Microsoft</div>
+                </div>`;
+        }
+
+        async function loadStats() {
+            try {
+                const brief = await fetch('/playbook/daily-brief');
+                const data = await brief.json();
+                const cves = data.cves || [];
+                const critical = cves.filter(c => c.severity === 'CRITICAL').length;
+                const high = cves.filter(c => c.severity === 'HIGH').length;
+                document.getElementById('critical-count').textContent = critical;
+                document.getElementById('high-count').textContent = high;
+
+                const threats = await fetch('/playbook/active-threats');
+                const tdata = await threats.json();
+                document.getElementById('ioc-count').textContent = (tdata.total_monitored || 0).toLocaleString();
+            } catch(e) {}
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>

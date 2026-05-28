@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from elasticsearch import Elasticsearch
 from dotenv import load_dotenv
 import json
@@ -18,13 +18,7 @@ with open("data/pci_dss_map.json") as f:
 
 @app.route("/")
 def index():
-    return jsonify({
-        "agent": "AEGIS",
-        "version": "1.0",
-        "status": "online",
-        "description": "Autonomous Financial Threat Intelligence Agent"
-    })
-
+    return render_template("index.html")
 @app.route("/health")
 def health():
     return jsonify({"status": "ok"})
