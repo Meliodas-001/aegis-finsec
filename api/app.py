@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from elasticsearch import Elasticsearch
 from dotenv import load_dotenv
 import json
@@ -13,8 +13,9 @@ es = Elasticsearch(
     api_key=os.getenv("ELASTIC_API_KEY")
 )
 
-# Load static PCI mapping data
-with open("data/pci_dss_map.json") as f:
+# Dynamic path resolution to ensure Railway finds the data folder
+base_dir = os.path.dirname(os.path.dirname(__file__))
+with open(os.path.join(base_dir, "data", "pci_dss_map.json")) as f:
     PCI_MAP = json.load(f)
 
 @app.route("/")
@@ -28,7 +29,6 @@ def health():
 @app.route("/playbook/daily-brief", methods=["GET"])
 def daily_brief():
     try:
-        # v8.x compliant search (no body={} parameter)
         result = es.search(
             index="aegis-cves",
             query={"terms": {"severity": ["CRITICAL", "HIGH"]}},
@@ -41,18 +41,13 @@ def daily_brief():
             doc = hit["_source"]
             cve_id = doc.get("cve_id", "")
             pci_info = PCI_MAP.get(cve_id, None)
-            cve_entry = {
+            cves.append({
                 "cve_id": cve_id,
                 "severity": doc.get("severity"),
-                "vendor": doc.get("vendor"),
                 "description": doc.get("description"),
-                "published_date": doc.get("published_date"),
-                "pci_requirement": pci_info["pci_requirement"] if pci_info else None,
-                "pci_title": pci_info["requirement_title"] if pci_info else None,
-                "remediation": pci_info["remediation"] if pci_info else None
-            }
-            cves.append(cve_entry)
-
+                "pci_compliance": pci_info
+            })
+            
         return jsonify({
             "playbook": "Daily Threat Brief",
             "total_threats": len(cves),
@@ -61,41 +56,12 @@ def daily_brief():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/playbook/compliance-report", methods=["GET"])
-def compliance_report():
-    mapped = []
-    for cve_id, pci_info in PCI_MAP.items():
-        mapped.append({
-            "cve_id": cve_id,
-            "pci_requirement": pci_info["pci_requirement"],
-            "requirement_title": pci_info["requirement_title"],
-            "risk": pci_info["risk"],
-            "remediation": pci_info["remediation"]
-        })
-
-    return jsonify({
-        "playbook": "PCI-DSS Compliance Report",
-        "total_mapped": len(mapped),
-        "report": mapped
-    })
-
 @app.route("/playbook/active-threats", methods=["GET"])
 def active_threats():
     try:
-        result = es.search(
-            index="aegis-iocs",
-            query={"match_all": {}},
-            size=15
-        )
-        iocs = []
-        for hit in result["hits"]["hits"]:
-            doc = hit["_source"]
-            iocs.append({
-                "ioc_value": doc.get("ioc_value"),
-                "threat_actor": doc.get("threat_actor"),
-                "tags": doc.get("tags", []),
-                "date_added": doc.get("date_added")
-            })
+        result = es.search(index="aegis-iocs", query={"match_all": {}}, size=10)
+        iocs = [hit["_source"] for hit in result["hits"]["hits"]]
+        
         return jsonify({
             "playbook": "Active Fintech Threats (IOCs)",
             "total_monitored": result["hits"]["total"]["value"],
@@ -104,13 +70,12 @@ def active_threats():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route("/playbook/threat-hunt", methods=["GET"])
-def threat_hunt():
+@app.route("/playbook/mitre-hunt", methods=["GET"])
+def mitre_hunt():
     try:
-        # Pull MITRE ATT&CK techniques relevant to fintech (v8.x compliant)
         result = es.search(
             index="aegis-ttpps",
-            query={"term": {"financial_relevant": True}},
+            query={"match_all": {}},
             sort=[{"technique_id.keyword": {"order": "asc"}}],
             size=20
         )
@@ -127,7 +92,6 @@ def threat_hunt():
                 "url": doc.get("url")
             })
             
-        # Cross-reference with CVEs in aegis-cves (v8.x compliant)
         cve_result = es.search(
             index="aegis-cves",
             query={"term": {"severity": "CRITICAL"}},
@@ -149,6 +113,77 @@ def threat_hunt():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/playbook/compliance-report", methods=["GET"])
+def compliance_report():
+    try:
+        mapped = []
+        for cve_id, pci_info in PCI_MAP.items():
+            mapped.append({
+                "cve_id": cve_id,
+                "pci_requirement": pci_info["pci_requirement"],
+                "requirement_title": pci_info["requirement_title"],
+                "risk": pci_info["risk"],
+                "remediation": pci_info["remediation"]
+            })
+        return jsonify({
+            "playbook": "PCI-DSS Compliance Report",
+            "total_mapped": len(mapped),
+            "report": mapped
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/mcp", methods=["GET", "POST"])
+def mcp_server():
+    if request.method == "GET":
+        return jsonify({
+            "name": "AEGIS Elastic MCP Server",
+            "version": "1.0",
+            "tools": [
+                {"name": "searchCVEs", "description": "Search CVEs affecting fintech stacks"},
+                {"name": "searchIOCs", "description": "Search malicious IOCs"},
+                {"name": "searchMITRE", "description": "Search MITRE ATT&CK techniques"},
+                {"name": "complianceReport", "description": "Get PCI-DSS compliance report"}
+            ]
+        })
+    
+    data = request.get_json() or {}
+    method = data.get("method", "")
+    params = data.get("params", {})
+    
+    if method == "tools/list":
+        return jsonify({
+            "jsonrpc": "2.0",
+            "id": data.get("id"),
+            "result": {
+                "tools": [
+                    {"name": "searchCVEs", "description": "Search CVEs affecting fintech stacks in Elastic", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}}},
+                    {"name": "searchIOCs", "description": "Search malicious IOC URLs", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}}},
+                    {"name": "complianceReport", "description": "Get PCI-DSS compliance mapping", "inputSchema": {"type": "object", "properties": {}}}
+                ]
+            }
+        })
+        
+    if method == "tools/call":
+        tool_name = params.get("name")
+        if tool_name == "searchCVEs":
+            result = es.search(
+                index="aegis-cves",
+                query={"terms": {"severity": ["CRITICAL", "HIGH"]}},
+                size=10
+            )
+            hits = [h["_source"] for h in result["hits"]["hits"]]
+            return jsonify({"jsonrpc": "2.0", "id": data.get("id"), "result": {"content": [{"type": "text", "text": json.dumps(hits)}]}})
+            
+        if tool_name == "searchIOCs":
+            result = es.search(index="aegis-iocs", query={"match_all": {}}, size=10)
+            hits = [h["_source"] for h in result["hits"]["hits"]]
+            return jsonify({"jsonrpc": "2.0", "id": data.get("id"), "result": {"content": [{"type": "text", "text": json.dumps(hits)}]}})
+            
+        if tool_name == "complianceReport":
+            return jsonify({"jsonrpc": "2.0", "id": data.get("id"), "result": {"content": [{"type": "text", "text": json.dumps(PCI_MAP)}]}})
+            
+    return jsonify({"jsonrpc": "2.0", "id": data.get("id"), "result": {}})
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
