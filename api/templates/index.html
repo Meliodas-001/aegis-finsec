@@ -86,10 +86,10 @@
                 <h3>🎯 Active Threat Intelligence</h3>
                 <p>Real-time IOCs from URLhaus — malicious URLs actively targeting payment infrastructure.</p>
             </div>
-            <div class="playbook-btn" onclick="showInfo()">
-                <div class="playbook-tag">POWERED BY</div>
-                <h3>⚙️ Agent Architecture</h3>
-                <p>Built on Gemini + Google Cloud Agent Builder. Elastic MCP server indexes 379 CVEs and 21,588 IOCs.</p>
+            <div class="playbook-btn" onclick="runPlaybook('threat-hunt', 'MITRE ATT&CK Threat Hunt')">
+                <div class="playbook-tag">MITRE ATT&CK</div>
+                <h3>🧠 Threat Hunt — ATT&CK Map</h3>
+                <p>184 MITRE ATT&CK Financial Services techniques cross-referenced against your live CVE data.</p>
             </div>
         </div>
 
@@ -140,6 +140,26 @@
                     html += `<div class="cve-item">
                         <div class="cve-id" style="font-size:12px;word-break:break-all">${ioc.ioc_value}</div>
                         <div class="vendor-tag" style="margin-top:6px">Threat: ${ioc.threat_actor || 'unknown'} | Added: ${ioc.date_added || 'recent'}</div>
+                    </div>`;
+                });
+            } else if (endpoint === 'threat-hunt') {
+                const techniques = data.techniques || [];
+                html += `<div class="stat-card" style="margin-bottom:16px;text-align:left;padding:12px 16px">
+                    <span style="color:#00d4ff;font-weight:600">${data.total_techniques_monitored}</span>
+                    <span style="color:#64748b;font-size:13px"> MITRE ATT&CK techniques monitored · </span>
+                    <span style="color:#ff4444;font-weight:600">${data.active_critical_cves}</span>
+                    <span style="color:#64748b;font-size:13px"> active CRITICAL CVEs</span>
+                </div>`;
+                techniques.forEach(t => {
+                    html += `<div class="cve-item">
+                        <div class="cve-header">
+                            <span class="cve-id">${t.technique_id} — ${t.name}</span>
+                        </div>
+                        <div class="vendor-tag" style="margin-bottom:6px">Tactics: ${(t.tactics || []).join(' · ')}</div>
+                        <div class="cve-desc">${t.description}</div>
+                        <div class="remediation" style="margin-top:6px">
+                            <a href="${t.url}" target="_blank" style="color:#00d4ff;font-size:11px">View on MITRE →</a>
+                        </div>
                     </div>`;
                 });
             }
