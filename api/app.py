@@ -136,54 +136,77 @@ def compliance_report():
 @app.route("/mcp", methods=["GET", "POST"])
 def mcp_server():
     if request.method == "GET":
-        return jsonify({
-            "name": "AEGIS Elastic MCP Server",
-            "version": "1.0",
-            "tools": [
-                {"name": "searchCVEs", "description": "Search CVEs affecting fintech stacks"},
-                {"name": "searchIOCs", "description": "Search malicious IOCs"},
-                {"name": "searchMITRE", "description": "Search MITRE ATT&CK techniques"},
-                {"name": "complianceReport", "description": "Get PCI-DSS compliance report"}
-            ]
-        })
+        return jsonify({"status": "MCP Server online"})
     
-    data = request.get_json() or {}
-    method = data.get("method", "")
-    params = data.get("params", {})
-    
-    if method == "tools/list":
+    try:
+        data = request.get_json() or {}
+        method = data.get("method", "")
+        params = data.get("params", {})
+        req_id = data.get("id")
+        
+        # MCP Handshake
+        if method == "initialize":
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {"tools": {}},
+                    "serverInfo": {"name": "AEGIS", "version": "1.0.0"}
+                }
+            })
+            
+        # Tool Discovery Schema
+        if method == "tools/list":
+            return jsonify({
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "tools": [
+                        {"name": "searchCVEs", "description": "Search CVEs affecting fintech stacks", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}}},
+                        {"name": "searchIOCs", "description": "Search malicious IOC URLs", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}}},
+                        {"name": "searchMITRE", "description": "Search MITRE ATT&CK techniques", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}}},
+                        {"name": "complianceReport", "description": "Get PCI-DSS compliance mapping", "inputSchema": {"type": "object", "properties": {}}}
+                    ]
+                }
+            })
+            
+        # Tool Calls Execution Engine
+        if method == "tools/call":
+            tool_name = params.get("name")
+            
+            if tool_name == "searchCVEs":
+                result = es.search(index="aegis-cves", size=10)
+                hits = [h["_source"] for h in result["hits"]["hits"]]
+                return jsonify({"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": json.dumps(hits)}]}})
+                
+            elif tool_name == "searchIOCs":
+                result = es.search(index="aegis-iocs", size=10)
+                hits = [h["_source"] for h in result["hits"]["hits"]]
+                return jsonify({"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": json.dumps(hits)}]}})
+                
+            elif tool_name == "searchMITRE":
+                result = es.search(index="aegis-ttpps", size=10)
+                hits = [h["_source"] for h in result["hits"]["hits"]]
+                return jsonify({"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": json.dumps(hits)}]}})
+                
+            elif tool_name == "complianceReport":
+                return jsonify({"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": json.dumps(PCI_MAP)}]}})
+                
+            else:
+                return jsonify({"jsonrpc": "2.0", "id": req_id, "result": {"content": [{"type": "text", "text": f"Tool {tool_name} not found"}], "isError": True}})
+                
+        return jsonify({"jsonrpc": "2.0", "id": req_id, "result": {}})
+        
+    except Exception as e:
         return jsonify({
             "jsonrpc": "2.0",
-            "id": data.get("id"),
+            "id": data.get("id") if 'data' in locals() else None,
             "result": {
-                "tools": [
-                    {"name": "searchCVEs", "description": "Search CVEs affecting fintech stacks in Elastic", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}}},
-                    {"name": "searchIOCs", "description": "Search malicious IOC URLs", "inputSchema": {"type": "object", "properties": {"query": {"type": "string"}}}},
-                    {"name": "complianceReport", "description": "Get PCI-DSS compliance mapping", "inputSchema": {"type": "object", "properties": {}}}
-                ]
+                "content": [{"type": "text", "text": f"Elastic Engine Exception: {str(e)}"}],
+                "isError": True
             }
         })
-        
-    if method == "tools/call":
-        tool_name = params.get("name")
-        if tool_name == "searchCVEs":
-            result = es.search(
-                index="aegis-cves",
-                query={"terms": {"severity": ["CRITICAL", "HIGH"]}},
-                size=10
-            )
-            hits = [h["_source"] for h in result["hits"]["hits"]]
-            return jsonify({"jsonrpc": "2.0", "id": data.get("id"), "result": {"content": [{"type": "text", "text": json.dumps(hits)}]}})
-            
-        if tool_name == "searchIOCs":
-            result = es.search(index="aegis-iocs", query={"match_all": {}}, size=10)
-            hits = [h["_source"] for h in result["hits"]["hits"]]
-            return jsonify({"jsonrpc": "2.0", "id": data.get("id"), "result": {"content": [{"type": "text", "text": json.dumps(hits)}]}})
-            
-        if tool_name == "complianceReport":
-            return jsonify({"jsonrpc": "2.0", "id": data.get("id"), "result": {"content": [{"type": "text", "text": json.dumps(PCI_MAP)}]}})
-            
-    return jsonify({"jsonrpc": "2.0", "id": data.get("id"), "result": {}})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
